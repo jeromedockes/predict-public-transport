@@ -1,0 +1,7 @@
+data/
+__pycache__/
+*.svg
+*.png
+*.pickle
+*.parquet
+*.html
