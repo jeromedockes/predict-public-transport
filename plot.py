@@ -23,6 +23,7 @@ plt.show()
 import plotly.graph_objects as go
 
 fig = go.Figure()
+fig.update_layout(title="daily travellers on tramway T2")
 fig.add_trace(
     go.Scatter(x=results["DAY"], y=results["N"], mode="lines", name="y_true")
 )
