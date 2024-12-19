@@ -27,3 +27,7 @@ python train.py --cross_validate
 # once that is done we can plot the predictions
 python plot.py
 ```
+
+Example plot for tramway line T2:
+
+https://jeromedockes.github.io/predict-public-transport/
