@@ -8,7 +8,7 @@ from train import regular_time_grid
 matplotlib.use("tkagg")
 
 results = pl.read_parquet("T2_cv_predictions.parquet")
-results = regular_time_grid(results)
+results = regular_time_grid(results.lazy()).collect()
 fig, ax = plt.subplots()
 ax.plot(results["DATE"], results["N"])
 ax.plot(results["DATE"], results["predicted"])

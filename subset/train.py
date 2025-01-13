@@ -24,19 +24,19 @@ def load_usage(line_name):
         .group_by("DATE")
         .agg(pl.col("N").sum())
         .sort("DATE")
-        .collect()
     )
     return usage
 
 
 def regular_time_grid(usage, max_offset=0):
+    all_dates = usage.collect()['DATE']
     date_range = pl.date_range(
-        usage["DATE"].min(),
-        usage["DATE"].max() + timedelta(days=max_offset),
+        all_dates.min(),
+        all_dates.max() + timedelta(days=max_offset),
         "1d",
         eager=True,
     )
-    dates = pl.DataFrame({"DATE": date_range})
+    dates = pl.LazyFrame({"DATE": date_range})
     return dates.join(usage, on=["DATE"], how="left")
 
 
@@ -67,7 +67,7 @@ def add_datetime_features(usage):
 
 
 def add_school_holidays(usage):
-    holidays = pl.read_parquet(data_dir / "school_holidays.parquet").filter(
+    holidays = pl.scan_parquet(data_dir / "school_holidays.parquet").filter(
         pl.col("location") == "Paris", pl.col("population").is_in(["-", "Élèves"])
     )
     start = holidays.select(
@@ -149,10 +149,10 @@ def get_cv_predictions(usage, model):
     for i, (train, test) in enumerate(Splitter().split(usage)):
         print(i)
         train_data = usage.select(pl.all().gather(train))
-        est = clone(model).fit(train_data.drop("N"), train_data["N"])
         test_data = usage.select(pl.all().gather(test))
         print(f"  train: {train_data['DATE'].min()} - {train_data['DATE'].max()}")
         print(f"  test:  {test_data['DATE'].min()} - {test_data['DATE'].max()}")
+        est = clone(model).fit(train_data.drop("N"), train_data["N"])
         pred = est.predict(test_data.drop("N"))
         err = mean_absolute_percentage_error(test_data["N"], pred)
         print(f"  MAPE: {err:.1%}")
@@ -163,6 +163,6 @@ def get_cv_predictions(usage, model):
 
 
 if __name__ == "__main__":
-    usage = load_features().drop_nulls("N")
+    usage = load_features().drop_nulls("N").collect()
     results = get_cv_predictions(usage, HistGradientBoostingRegressor())
     results.write_parquet(f"{line_name}_cv_predictions.parquet")
