@@ -1,9 +1,5 @@
-from datetime import timedelta
-from pathlib import Path
-
 import polars as pl
 from sklearn.base import clone
-from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.metrics import mean_absolute_percentage_error
 
 import utils
@@ -19,8 +15,8 @@ def get_cv_predictions(usage, estimator):
         test_data = usage.select(pl.all().gather(test))
         print(f"  train: {train_data['DATE'].min()} - {train_data['DATE'].max()}")
         print(f"  test:  {test_data['DATE'].min()} - {test_data['DATE'].max()}")
-        est = clone(estimator).fit({'data': train_data})
-        pred = est.predict({'data': test_data})
+        est = clone(estimator).fit({"data": train_data})
+        pred = est.predict({"data": test_data})
         err = mean_absolute_percentage_error(test_data["N"], pred)
         print(f"  MAPE: {err:.1%}")
         all_test_data.append(test_data.with_columns(predicted=pred))

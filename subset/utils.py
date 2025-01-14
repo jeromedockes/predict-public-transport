@@ -87,23 +87,41 @@ def add_holidays(usage):
     return usage.with_columns(is_holiday=pl.col("DATE").is_in(holidays["date"]))
 
 
-def add_features(dates, line_name):
+def add_features(dates, line_name, *, lagged, school_holidays, holidays):
     usage = load_usage(line_name)
     usage = regular_time_grid(usage, 10)
     usage = add_datetime_features(usage)
-    usage = add_lagged_features(usage)
-    usage = add_school_holidays(usage)
-    usage = add_holidays(usage)
+    if lagged:
+        usage = add_lagged_features(usage)
+    if school_holidays:
+        usage = add_school_holidays(usage)
+    if holidays:
+        usage = add_holidays(usage)
     usage = usage.drop("N").collect()
-    return dates.join(usage, on="DATE", how="left")
+    return dates.join(usage, on="DATE", how="left").drop("DATE")
 
 
 def get_predictor(line_name):
     data = skrub.var("data")
     dates = data.select("DATE").skb.mark_as_x()
     counts = data["N"].skb.mark_as_y()
-    X = skrub.deferred(add_features)(dates, line_name)
-    pred = X.skb.apply(HistGradientBoostingRegressor(), y=counts)
+    X = skrub.deferred(add_features)(
+        dates,
+        line_name,
+        lagged=skrub.choose_bool("use_lagged_features"),
+        school_holidays=skrub.choose_bool("use_school_holidays"),
+        holidays=skrub.choose_bool("use_holidays"),
+    )
+    hgb = HistGradientBoostingRegressor(
+        learning_rate=skrub.choose_float(0.001, 0.8, log=True, name="lr"),
+        max_leaf_nodes=skrub.choose_int(2, 65, log=True, name="max leaf nodes"),
+        max_bins=skrub.choose_int(3, 256, log=True, name="max bins"),
+        min_samples_leaf=skrub.choose_int(1, 100, log=True, name="min samples leaf"),
+        early_stopping=True,
+        n_iter_no_change=10,
+        max_iter=1000,
+    )
+    pred = X.skb.apply(hgb, y=counts)
     return pred
 
 
