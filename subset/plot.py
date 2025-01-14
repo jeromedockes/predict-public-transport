@@ -2,13 +2,13 @@ import polars as pl
 import matplotlib
 from matplotlib import pyplot as plt
 
-from train import regular_time_grid
+import utils
 
 
 matplotlib.use("tkagg")
 
 results = pl.read_parquet("T2_cv_predictions.parquet")
-results = regular_time_grid(results.lazy()).collect()
+results = utils.regular_time_grid(results.lazy()).collect()
 fig, ax = plt.subplots()
 ax.plot(results["DATE"], results["N"])
 ax.plot(results["DATE"], results["predicted"])
