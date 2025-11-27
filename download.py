@@ -3,7 +3,7 @@ https://eu.ftp.opendatasoft.com/stif/Validations/Donnees_de_validation.pdf
 https://prim.iledefrance-mobilites.fr/en/jeux-de-donnees/histo-validations-reseau-ferre
 
 """
-
+import itertools
 import pathlib
 import shutil
 
@@ -57,9 +57,16 @@ def _to_utf8(path):
 
 def _load(table_name, key):
     print("Create db")
+    long_key = {"rs": "SURFACE", "rf": "FER"}
     con = get_connection()
     for i, year_csv in enumerate(
-        filter(lambda p: p.suffix != ".utf8", OUT_DIR.glob(f"*/data-{key}*/*NB*"))
+        filter(
+            lambda p: p.suffix != ".utf8",
+            itertools.chain(
+                OUT_DIR.glob(f"*/data-{key}*/*NB*"),
+                OUT_DIR.glob(f"*/*NB_{long_key}.txt"),
+            ),
+        )
     ):
         print(i, year_csv)
         utf8 = _to_utf8(year_csv)
@@ -88,6 +95,7 @@ def _load(table_name, key):
                     f"read_csv('{utf8}', delim='{delim}', types={types}, nullstr=['?', '']);"
                 )
         except duckdb.InvalidInputException:
+            print(f"FAILED: {year_csv}")
             continue
 
 

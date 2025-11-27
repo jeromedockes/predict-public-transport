@@ -103,14 +103,14 @@ def add_features(dates, line_name, *, lagged, school_holidays, holidays):
 
 def get_predictor(line_name):
     data = skrub.var("data")
-    dates = data.select("DATE").skb.mark_as_x()
+    dates = data.select("DATE").skb.mark_as_X()
     counts = data["N"].skb.mark_as_y()
     X = skrub.deferred(add_features)(
         dates,
         line_name,
-        lagged=skrub.choose_bool("use_lagged_features"),
-        school_holidays=skrub.choose_bool("use_school_holidays"),
-        holidays=skrub.choose_bool("use_holidays"),
+        lagged=skrub.choose_bool(name="use_lagged_features"),
+        school_holidays=skrub.choose_bool(name="use_school_holidays"),
+        holidays=skrub.choose_bool(name="use_holidays"),
     )
     hgb = HistGradientBoostingRegressor(
         learning_rate=skrub.choose_float(0.001, 0.8, log=True, name="lr"),

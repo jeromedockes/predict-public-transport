@@ -12,7 +12,7 @@ if (pickle_path := Path("best-model.pickle")).is_file():
         est = pickle.load(stream)
 else:
     pred = utils.get_predictor(LINE_NAME)
-    est = pred.skb.get_estimator()
+    est = pred.skb.make_learner()
 
 est.fit({"data": usage})
 

@@ -36,7 +36,7 @@ if (pickle_path := Path("best-model.pickle")).is_file():
         est = pickle.load(stream)
 else:
     pred = utils.get_predictor(LINE_NAME)
-    est = pred.skb.get_estimator()
+    est = pred.skb.make_learner()
 
 results = get_cv_predictions(usage, est)
 results.write_parquet(f"{LINE_NAME}_cv_predictions.parquet")

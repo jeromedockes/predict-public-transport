@@ -29,7 +29,7 @@ all_days_df = all_days_df.to_polars()
 
 # %%
 all_days = skrub.var("all_days", all_days_df)
-X = all_days.select(["DAY", "LINE"]).skb.mark_as_x()
+X = all_days.select(["DAY", "LINE"]).skb.mark_as_X()
 y = all_days["N"].skb.mark_as_y()
 
 con = skrub.var("connection", connection)
