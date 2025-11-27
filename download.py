@@ -77,15 +77,18 @@ def _load(table_name, key):
         else:
             types.pop("CODE_STIF_ARRET")
         try:
-            con.sql(
-                f"insert into {table_name} SELECT * from "
-                f"read_csv('{utf8}', delim='{delim}', types={types});"
-            )
-        except duckdb.CatalogException:
-            con.sql(
-                f"CREATE TABLE {table_name} as SELECT * from "
-                f"read_csv('{utf8}', delim='{delim}', types={types});"
-            )
+            try:
+                con.sql(
+                    f"insert into {table_name} SELECT * from "
+                    f"read_csv('{utf8}', delim='{delim}', types={types}, nullstr=['?', '']);"
+                )
+            except duckdb.CatalogException:
+                con.sql(
+                    f"CREATE TABLE {table_name} as SELECT * from "
+                    f"read_csv('{utf8}', delim='{delim}', types={types}, nullstr=['?', '']);"
+                )
+        except duckdb.InvalidInputException:
+            continue
 
 
 def load():
