@@ -1,11 +1,17 @@
 from datetime import timedelta
 from pathlib import Path
 
+import numpy as np
+from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.preprocessing import KBinsDiscretizer
 import polars as pl
 from sklearn.base import clone
+from sklearn.impute import SimpleImputer
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.metrics import mean_absolute_percentage_error
 import skrub
+
+from neuralk_foundry.models import RemoteClassifier
 
 data_dir = Path(__file__).parent
 
@@ -79,7 +85,9 @@ def add_school_holidays(usage):
         is_school_holiday=0,
     )
     events = pl.concat([start, end]).sort("DATE")
-    return usage.join_asof(events, on="DATE")
+    return usage.join_asof(events, on="DATE").with_columns(
+        pl.col("is_school_holiday").fill_null(0)
+    )
 
 
 def add_holidays(usage):
@@ -101,6 +109,24 @@ def add_features(dates, line_name, *, lagged, school_holidays, holidays):
     return dates.join(usage, on="DATE", how="left").drop("DATE")
 
 
+class NiclRegressor(RegressorMixin, BaseEstimator):
+    def __init__(self, url, transfer_mode):
+        self.url = url
+        self.transfer_mode = transfer_mode
+
+    def fit(self, X, y):
+        self.discretizer_ = KBinsDiscretizer(
+            n_bins=min(200, max(1, len(set(y)) // 5)), encode="ordinal"
+        )
+        y = self.discretizer_.fit_transform(np.asarray([y]).T).squeeze()
+        self.classifier_ = RemoteClassifier(self.url, self.transfer_mode).fit(X, y)
+        return self
+
+    def predict(self, X):
+        y = self.classifier_.predict(X)
+        return self.discretizer_.inverse_transform(np.asarray([y]).T).squeeze()
+
+
 def get_predictor(line_name):
     data = skrub.var("data")
     dates = data.select("DATE").skb.mark_as_X()
@@ -111,7 +137,7 @@ def get_predictor(line_name):
         lagged=skrub.choose_bool(name="use_lagged_features"),
         school_holidays=skrub.choose_bool(name="use_school_holidays"),
         holidays=skrub.choose_bool(name="use_holidays"),
-    )
+    ).skb.apply(SimpleImputer())
     hgb = HistGradientBoostingRegressor(
         learning_rate=skrub.choose_float(0.001, 0.8, log=True, name="lr"),
         max_leaf_nodes=skrub.choose_int(2, 65, log=True, name="max leaf nodes"),
@@ -121,7 +147,12 @@ def get_predictor(line_name):
         n_iter_no_change=10,
         max_iter=1000,
     )
-    pred = X.skb.apply(hgb, y=counts)
+    nicl = NiclRegressor(
+        "https://nicl-723294174640.europe-west1.run.app",
+        transfer_mode=("storage", "foundry-datasets"),
+    )
+    model = skrub.choose_from({"nicl": nicl, "hgb": hgb}, name="model")
+    pred = X.skb.apply(model, y=counts)
     return pred
 
 

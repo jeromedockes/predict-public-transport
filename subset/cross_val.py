@@ -1,6 +1,7 @@
 import pickle
 from pathlib import Path
 
+import dotenv
 import polars as pl
 from sklearn.base import clone
 from sklearn.metrics import mean_absolute_percentage_error
@@ -9,6 +10,7 @@ import utils
 
 LINE_NAME = "T2"
 
+dotenv.load_dotenv()
 
 def get_cv_predictions(usage, estimator):
     all_test_data = []
