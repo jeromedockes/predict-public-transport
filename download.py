@@ -57,7 +57,7 @@ def _to_utf8(path):
 
 def _load(table_name, key):
     print("Create db")
-    long_key = {"rs": "SURFACE", "rf": "FER"}
+    long_key = {"rs": "SURFACE", "rf": "FER"}[key]
     con = get_connection()
     for i, year_csv in enumerate(
         filter(
