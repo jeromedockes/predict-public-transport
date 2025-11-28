@@ -156,7 +156,7 @@ def get_predictor(line_name):
         "https://nicl-723294174640.europe-west1.run.app",
         transfer_mode=("storage", "foundry-datasets"),
         strategy=skrub.choose_from(["quantile", "kmeans"], name="kbins_strategy"),
-        max_n_bins=skrub.choose_int(10, 1000, name="n_bins", default=100),
+        max_n_bins=skrub.choose_int(10, 1000, name="nicl_n_bins", default=100),
     )
     model = skrub.choose_from({"nicl": nicl, "hgb": hgb}, name="model")
     pred = X.skb.apply(model, y=counts)
