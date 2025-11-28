@@ -22,7 +22,7 @@ with open("search-model.pickle", "wb") as stream:
     pickle.dump(search, stream)
 
 with open("best-model.pickle", "wb") as stream:
-    pickle.dump(search.best_estimator_, stream)
+    pickle.dump(search.best_learner_, stream)
 
-print(search.get_cv_results_table())
-search.plot_parallel_coord().show()
+print(search.results_)
+search.plot_results().show()
