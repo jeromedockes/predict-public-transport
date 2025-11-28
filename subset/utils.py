@@ -110,13 +110,18 @@ def add_features(dates, line_name, *, lagged, school_holidays, holidays):
 
 
 class NiclRegressor(RegressorMixin, BaseEstimator):
-    def __init__(self, url, transfer_mode):
+    def __init__(self, url, transfer_mode, max_n_bins=50, strategy="quantile"):
         self.url = url
         self.transfer_mode = transfer_mode
+        self.max_n_bins = max_n_bins
+        self.strategy = strategy
 
     def fit(self, X, y):
         self.discretizer_ = KBinsDiscretizer(
-            n_bins=min(200, max(1, len(set(y)) // 5)), encode="ordinal"
+            n_bins=min(self.max_n_bins, max(1, len(set(y)) // 5)),
+            strategy=self.strategy,
+            encode="ordinal",
+            quantile_method="averaged_inverted_cdf",
         )
         y = self.discretizer_.fit_transform(np.asarray([y]).T).squeeze()
         self.classifier_ = RemoteClassifier(self.url, self.transfer_mode).fit(X, y)
@@ -150,6 +155,8 @@ def get_predictor(line_name):
     nicl = NiclRegressor(
         "https://nicl-723294174640.europe-west1.run.app",
         transfer_mode=("storage", "foundry-datasets"),
+        strategy=skrub.choose_from(["quantile", "kmeans"], name="kbins_strategy"),
+        max_n_bins=skrub.choose_int(10, 1000, name="n_bins", default=100),
     )
     model = skrub.choose_from({"nicl": nicl, "hgb": hgb}, name="model")
     pred = X.skb.apply(model, y=counts)
