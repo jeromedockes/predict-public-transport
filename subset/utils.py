@@ -79,7 +79,9 @@ def add_school_holidays(usage):
         is_school_holiday=0,
     )
     events = pl.concat([start, end]).sort("DATE")
-    return usage.join_asof(events, on="DATE")
+    return usage.join_asof(events, on="DATE").with_columns(
+        pl.col("is_school_holiday").fill_null(0)
+    )
 
 
 def add_holidays(usage):
